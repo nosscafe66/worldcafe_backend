@@ -93,8 +93,9 @@ async function handleEvent(event) {
         return Promise.resolve(null);
     }
 
-    // LINE Botからの返信などの処理...
-    await insertDataToDatabase(event);
+    if (event.message.text.includes("特定のキーワード")) {
+        await insertDataToDatabase(event);
+    }
 }
 
 if (process.env.NOW_REGION) {
