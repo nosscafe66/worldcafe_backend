@@ -1,16 +1,12 @@
 'use strict';
 
-require('dotenv').config()
+require('dotenv').config();
 
 const axios = require('axios');
 const express = require('express');
 const line = require('@line/bot-sdk');
+const { Pool } = require('pg');
 const PORT = process.env.PORT || 3000;
-
-console.log(process.env)
-
-console.log(process.env.LINE_CHANNEL_SECRET)
-console.log(process.env.LINE_CHANNEL_ACCESSTOKEN)
 
 const config = {
     channelSecret: process.env.LINE_CHANNEL_SECRET,
@@ -19,7 +15,26 @@ const config = {
 
 const app = express();
 
-// 以下のコードは変更なし
+// PostgreSQLデータベースへの接続設定
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+// データベースにデータを保存する関数
+async function saveDataToDatabase(data) {
+  try {
+    const query = 'INSERT INTO your_table_name (column1, column2) VALUES ($1, $2)';
+    const values = [data.value1, data.value2];
+
+    await pool.query(query, values);
+  } catch (err) {
+    console.error('Error saving data to database:', err);
+  }
+}
+
 app.get('/', (req, res) => res.send('Hello LINE BOT!(GET)'));
 
 app.post('/webhook', line.middleware(config), (req, res) => {
@@ -41,10 +56,10 @@ async function handleEvent(event) {
         return Promise.resolve(null);
     }
 
-    // return client.replyMessage(event.replyToken, {
-    //     type: 'text',
-    //     text: event.message.text
-    // });
+    // ここでデータベースにデータを保存
+    await saveDataToDatabase({ value1: 'Some data', value2: 'More data' });
+
+    // LINE Botからの返信などの処理...
 }
 
 if (process.env.NOW_REGION) {
