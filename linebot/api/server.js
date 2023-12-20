@@ -22,6 +22,33 @@ const pool = new Pool({
   }
 });
 
+// データベースにデータを挿入する関数
+async function insertDataToDatabase(event) {
+    try {
+      const query = `
+        INSERT INTO linebot_messages (
+          message_id, text, user_id, group_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`;
+  
+      const values = [
+        event.message.id,
+        event.message.text,
+        event.source.userId,
+        event.source.groupId,
+        event.timestamp,
+        event.replyToken,
+        event.webhookEventId,
+        event.mode,
+        event.deliveryContext.isRedelivery
+      ];
+  
+      await pool.query(query, values);
+    } catch (err) {
+      console.error('Error inserting data to database:', err);
+    }
+  }
+  
+
 // データベースからデータを取得する関数
 async function fetchDataFromDatabase(user) {
   try {
@@ -67,6 +94,7 @@ async function handleEvent(event) {
     }
 
     // LINE Botからの返信などの処理...
+    await insertDataToDatabase(event);
 }
 
 if (process.env.NOW_REGION) {
