@@ -2,7 +2,6 @@
 
 require('dotenv').config();
 
-const axios = require('axios');
 const express = require('express');
 const line = require('@line/bot-sdk');
 const { Pool } = require('pg');
@@ -17,24 +16,35 @@ const app = express();
 
 // PostgreSQLデータベースへの接続設定
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.POSTGRES_HOST,
   ssl: {
     rejectUnauthorized: false
   }
 });
 
-// データベースにデータを保存する関数
-async function saveDataToDatabase(data) {
+// データベースからデータを取得する関数
+async function fetchDataFromDatabase(user) {
   try {
-    const query = 'INSERT INTO your_table_name (column1, column2) VALUES ($1, $2)';
-    const values = [data.value1, data.value2];
-
-    await pool.query(query, values);
+    const { rows } = await pool.query('SELECT * FROM carts WHERE user_id = $1', [user]);
+    return rows;
   } catch (err) {
-    console.error('Error saving data to database:', err);
+    console.error('Error fetching data from database:', err);
+    throw err;
   }
 }
 
+// 新しいエンドポイントを追加
+app.get('/api/cart/:user', async (req, res) => {
+  try {
+    const user = req.params.user;
+    const data = await fetchDataFromDatabase(user);
+    res.json(data);
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
+});
+
+// 以下のコードは変更なし
 app.get('/', (req, res) => res.send('Hello LINE BOT!(GET)'));
 
 app.post('/webhook', line.middleware(config), (req, res) => {
@@ -55,9 +65,6 @@ async function handleEvent(event) {
     if (event.type !== 'message' || event.message.type !== 'text') {
         return Promise.resolve(null);
     }
-
-    // ここでデータベースにデータを保存
-    await saveDataToDatabase({ value1: 'Some data', value2: 'More data' });
 
     // LINE Botからの返信などの処理...
 }
