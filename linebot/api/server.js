@@ -93,7 +93,7 @@ async function handleEvent(event) {
         return Promise.resolve(null);
     }
 
-    if (event.message.text.includes("特定のキーワード")) {
+    if (event.message.text.includes("Worldcafeイベント告知")) {
         await insertDataToDatabase(event);
     }
 }
