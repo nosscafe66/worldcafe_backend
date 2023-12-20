@@ -16,7 +16,7 @@ const app = express();
 
 // PostgreSQLデータベースへの接続設定
 const pool = new Pool({
-  connectionString: process.env.POSTGRES_HOST,
+  connectionString: process.env.POSTGRES_URL,
   ssl: {
     rejectUnauthorized: false
   }
