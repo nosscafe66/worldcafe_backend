@@ -65,6 +65,8 @@ app.get('/api/cart/:user', async (req, res) => {
   try {
     const user = req.params.user;
     const data = await fetchDataFromDatabase(user);
+    console.log(data);
+    console.log("データ取得");
     res.json(data);
   } catch (err) {
     res.status(500).send('Server error');
