@@ -50,31 +50,34 @@ async function insertDataToDatabase(event) {
   
 
 // データベースからデータを取得する関数
-async function fetchDataFromDatabase(user) {
+// async function fetchDataFromDatabase(user) {
+//   try {
+//     const { rows } = await pool.query('SELECT * FROM carts WHERE user_id = $1', [user]);
+//     return rows;
+//   } catch (err) {
+//     console.error('Error fetching data from database:', err);
+//     throw err;
+//   }
+// }
+
+async function fetchAllData() {
   try {
-    const { rows } = await pool.query('SELECT * FROM carts WHERE user_id = $1', [user]);
+    const { rows } = await pool.query('SELECT * FROM linebot_messages');
     return rows;
   } catch (err) {
-    console.error('Error fetching data from database:', err);
+    console.error('Error fetching all data from database:', err);
     throw err;
   }
 }
 
-// 新しいエンドポイントを追加
-// app.get('/api/cart/:user', async (req, res) => {
-//   try {
-//     const user = req.params.user;
-//     const data = await fetchDataFromDatabase(user);
-//     console.log(data);
-//     console.log("データ取得");
-//     res.json(data);
-//   } catch (err) {
-//     res.status(500).send('Server error');
-//   }
-// });
-
-// 以下のコードは変更なし
-app.get('/', (req, res) => res.send('Hello LINE BOT!(GET)'));
+app.get('/', async (req, res) => {
+  try {
+    const data = await fetchAllData();
+    res.json(data);
+  } catch (err) {
+    res.status(500).send('Server error');
+  }
+});
 
 app.post('/webhook', line.middleware(config), (req, res) => {
     Promise
