@@ -61,17 +61,17 @@ async function fetchDataFromDatabase(user) {
 }
 
 // 新しいエンドポイントを追加
-app.get('/api/cart/:user', async (req, res) => {
-  try {
-    const user = req.params.user;
-    const data = await fetchDataFromDatabase(user);
-    console.log(data);
-    console.log("データ取得");
-    res.json(data);
-  } catch (err) {
-    res.status(500).send('Server error');
-  }
-});
+// app.get('/api/cart/:user', async (req, res) => {
+//   try {
+//     const user = req.params.user;
+//     const data = await fetchDataFromDatabase(user);
+//     console.log(data);
+//     console.log("データ取得");
+//     res.json(data);
+//   } catch (err) {
+//     res.status(500).send('Server error');
+//   }
+// });
 
 // 以下のコードは変更なし
 app.get('/', (req, res) => res.send('Hello LINE BOT!(GET)'));
