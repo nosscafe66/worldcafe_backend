@@ -70,7 +70,7 @@ async function fetchAllData() {
   }
 }
 
-app.get('/', async (req, res) => {
+app.get('https://worldcafe-backend.vercel.app/api/data', async (req, res) => {
   try {
     const data = await fetchAllData();
     res.json(data);
