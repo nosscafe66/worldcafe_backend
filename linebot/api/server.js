@@ -47,18 +47,6 @@ async function insertDataToDatabase(event) {
       console.error('Error inserting data to database:', err);
     }
   }
-  
-
-// データベースからデータを取得する関数
-// async function fetchDataFromDatabase(user) {
-//   try {
-//     const { rows } = await pool.query('SELECT * FROM carts WHERE user_id = $1', [user]);
-//     return rows;
-//   } catch (err) {
-//     console.error('Error fetching data from database:', err);
-//     throw err;
-//   }
-// }
 
 async function fetchAllData() {
   try {
@@ -92,7 +80,7 @@ app.post('/webhook', line.middleware(config), (req, res) => {
 const client = new line.Client(config);
 
 async function handleEvent(event) {
-    console.log(JSON.stringify(event, null, 2));
+    // console.log(JSON.stringify(event, null, 2));
 
     if (event.type !== 'message' || event.message.type !== 'text') {
         return Promise.resolve(null);
