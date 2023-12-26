@@ -22,31 +22,32 @@ const pool = new Pool({
   }
 });
 
-// データベースにデータを挿入する関数
-async function insertDataToDatabase(event) {
-    try {
-      const query = `
-        INSERT INTO linebot_messages (
-          message_id, text, user_id, group_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`;
-  
-      const values = [
-        event.message.id,
-        event.message.text,
-        event.source.userId,
-        event.source.groupId,
-        event.timestamp,
-        event.replyToken,
-        event.webhookEventId,
-        event.mode,
-        event.deliveryContext.isRedelivery
-      ];
-  
-      await pool.query(query, values);
-    } catch (err) {
-      console.error('Error inserting data to database:', err);
-    }
+// データベースにデータを挿入する関数（カテゴリ付き）
+async function insertDataToDatabase(event, category) {
+  try {
+    const query = `
+      INSERT INTO linebot_messages (
+        message_id, text, user_id, group_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery, category
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`;
+
+    const values = [
+      event.message.id,
+      event.message.text,
+      event.source.userId,
+      event.source.groupId,
+      event.timestamp,
+      event.replyToken,
+      event.webhookEventId,
+      event.mode,
+      event.deliveryContext.isRedelivery,
+      category
+    ];
+
+    await pool.query(query, values);
+  } catch (err) {
+    console.error('Error inserting data to database:', err);
   }
+}
 
 async function fetchAllData() {
   try {
@@ -80,15 +81,22 @@ app.post('/webhook', line.middleware(config), (req, res) => {
 const client = new line.Client(config);
 
 async function handleEvent(event) {
-    // console.log(JSON.stringify(event, null, 2));
+  // 他のイベントタイプは無視
+  if (event.type !== 'message' || event.message.type !== 'text') {
+      return Promise.resolve(null);
+  }
 
-    if (event.type !== 'message' || event.message.type !== 'text') {
-        return Promise.resolve(null);
-    }
+  // メッセージから「カテゴリ：任意の文字」を抜き出す
+  const categoryRegex = /カテゴリ：(.+)/;
+  const matches = event.message.text.match(categoryRegex);
 
-    if (event.message.text.includes("Worldcafeイベント告知")) {
-        await insertDataToDatabase(event);
-    }
+  if (matches) {
+      // カテゴリのテキストを取得
+      const categoryText = matches[1];
+
+      // カテゴリを含むイベントデータをデータベースに保存
+      await insertDataToDatabase(event, categoryText);
+  }
 }
 
 if (process.env.NOW_REGION) {
