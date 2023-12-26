@@ -22,8 +22,7 @@ const pool = new Pool({
   }
 });
 
-// データベースにデータを挿入する関数（カテゴリ付き）
-async function insertDataToDatabase(event, category) {
+async function insertDataToDatabase(event, text, category) {
   try {
     const query = `
       INSERT INTO linebot_messages (
@@ -32,7 +31,7 @@ async function insertDataToDatabase(event, category) {
 
     const values = [
       event.message.id,
-      event.message.text,
+      text,
       event.source.userId,
       event.source.groupId,
       event.timestamp,
@@ -81,22 +80,25 @@ app.post('/webhook', line.middleware(config), (req, res) => {
 const client = new line.Client(config);
 
 async function handleEvent(event) {
-  // 他のイベントタイプは無視
   if (event.type !== 'message' || event.message.type !== 'text') {
-      return Promise.resolve(null);
+    return Promise.resolve(null);
   }
 
-  // メッセージから「カテゴリ：任意の文字」を抜き出す
   const categoryRegex = /カテゴリ：(.+)/;
   const matches = event.message.text.match(categoryRegex);
+  let categoryText = '';
+  let textWithoutCategory = event.message.text;
 
   if (matches) {
-      // カテゴリのテキストを取得
-      const categoryText = matches[1];
+    // カテゴリのテキストを取得
+    categoryText = matches[1];
 
-      // カテゴリを含むイベントデータをデータベースに保存
-      await insertDataToDatabase(event, categoryText);
+    // メッセージからカテゴリのテキストを取り除く
+    textWithoutCategory = event.message.text.replace(categoryRegex, '').trim();
   }
+
+  // カテゴリを含むイベントデータをデータベースに保存（カテゴリ除外済みのテキストを使用）
+  await insertDataToDatabase(event, textWithoutCategory, categoryText);
 }
 
 if (process.env.NOW_REGION) {
