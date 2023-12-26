@@ -22,12 +22,13 @@ const pool = new Pool({
   }
 });
 
-async function insertDataToDatabase(event, text, category) {
+// insertDataToDatabase 関数も変更して、イベント内容の引数を追加します
+async function insertDataToDatabase(event, text, category, eventContent) {
   try {
     const query = `
       INSERT INTO linebot_messages (
-        message_id, text, user_id, group_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery, category
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`;
+        message_id, text, user_id, group_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery, category, event_content
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
 
     const values = [
       event.message.id,
@@ -39,7 +40,8 @@ async function insertDataToDatabase(event, text, category) {
       event.webhookEventId,
       event.mode,
       event.deliveryContext.isRedelivery,
-      category
+      category,
+      eventContent
     ];
 
     await pool.query(query, values);
@@ -85,20 +87,33 @@ async function handleEvent(event) {
   }
 
   const categoryRegex = /カテゴリ：(.+)/;
-  const matches = event.message.text.match(categoryRegex);
-  let categoryText = '';
-  let textWithoutCategory = event.message.text;
+  const eventContentRegex = /イベント内容：(.+)/;
 
-  if (matches) {
+  const categoryMatches = event.message.text.match(categoryRegex);
+  const eventContentMatches = event.message.text.match(eventContentRegex);
+
+  let categoryText = '';
+  let eventContentText = '';
+  let textWithoutCategoryAndEventContent = event.message.text;
+
+  if (categoryMatches) {
     // カテゴリのテキストを取得
-    categoryText = matches[1];
+    categoryText = categoryMatches[1];
 
     // メッセージからカテゴリのテキストを取り除く
-    textWithoutCategory = event.message.text.replace(categoryRegex, '').trim();
+    textWithoutCategoryAndEventContent = textWithoutCategoryAndEventContent.replace(categoryRegex, '').trim();
   }
 
-  // カテゴリを含むイベントデータをデータベースに保存（カテゴリ除外済みのテキストを使用）
-  await insertDataToDatabase(event, textWithoutCategory, categoryText);
+  if (eventContentMatches) {
+    // イベント内容のテキストを取得
+    eventContentText = eventContentMatches[1];
+
+    // メッセージからイベント内容のテキストを取り除く
+    textWithoutCategoryAndEventContent = textWithoutCategoryAndEventContent.replace(eventContentRegex, '').trim();
+  }
+
+  // カテゴリとイベント内容を含むイベントデータをデータベースに保存
+  await insertDataToDatabase(event, textWithoutCategoryAndEventContent, categoryText, eventContentText);
 }
 
 if (process.env.NOW_REGION) {
