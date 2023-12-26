@@ -70,7 +70,7 @@ async function fetchAllData() {
   }
 }
 
-app.get('/api/data', async (req, res) => {
+app.get('/', async (req, res) => {
   try {
     const data = await fetchAllData();
     res.json(data);
