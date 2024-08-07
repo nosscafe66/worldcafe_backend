@@ -85,6 +85,8 @@ async function handleEvent(event) {
     return Promise.resolve(null);
   }
 
+  console.log("event",event);
+
   // 「問診票」が含まれるメッセージをチェック
   if (event.message.text.includes('問診票')) {
     // ユーザー名とユーザーIDを正規表現で抽出
