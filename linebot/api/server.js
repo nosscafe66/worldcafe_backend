@@ -21,12 +21,12 @@ const pool = new Pool({
   }
 });
 
-// insertDataToDatabase 関数も変更して、イベント内容の引数を追加します
-async function insertDataToDatabase(event, text, category, eventContent) {
+// insertDataToDatabase 関数を変更して、ユーザー名とユーザーIDを追加します
+async function insertDataToDatabase(event, text, userName, userId) {
   try {
     const query = `
       INSERT INTO linebot_messages (
-        message_id, text, user_id, group_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery, category, event_content
+        message_id, text, user_id, group_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery, user_name, user_line_id
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
 
     const values = [
@@ -39,8 +39,8 @@ async function insertDataToDatabase(event, text, category, eventContent) {
       event.webhookEventId,
       event.mode,
       event.deliveryContext.isRedelivery,
-      category,
-      eventContent
+      userName,
+      userId
     ];
 
     await pool.query(query, values);
@@ -85,34 +85,20 @@ async function handleEvent(event) {
     return Promise.resolve(null);
   }
 
-  const categoryRegex = /カテゴリ：(.+)/;
-  const eventContentRegex = /イベント内容：(.+)/;
+  // 「問診票」が含まれるメッセージをチェック
+  if (event.message.text.includes('問診票')) {
+    // ユーザー名とユーザーIDを正規表現で抽出
+    const userNameMatch = event.message.text.match(/ユーザー名:\s*(\S+)/);
+    const userIdMatch = event.message.text.match(/ユーザーID:\s*(\S+)/);
 
-  const categoryMatches = event.message.text.match(categoryRegex);
-  const eventContentMatches = event.message.text.match(eventContentRegex);
+    if (userNameMatch && userIdMatch) {
+      const userName = userNameMatch[1];
+      const userId = userIdMatch[1];
 
-  let categoryText = '';
-  let eventContentText = '';
-  let textWithoutCategoryAndEventContent = event.message.text;
-
-  if (categoryMatches) {
-    // カテゴリのテキストを取得
-    categoryText = categoryMatches[1];
-
-    // メッセージからカテゴリのテキストを取り除く
-    textWithoutCategoryAndEventContent = textWithoutCategoryAndEventContent.replace(categoryRegex, '').trim();
+      // ユーザー名とユーザーIDを含むデータをデータベースに保存
+      await insertDataToDatabase(event, event.message.text, userName, userId);
+    }
   }
-
-  if (eventContentMatches) {
-    // イベント内容のテキストを取得
-    eventContentText = eventContentMatches[1];
-
-    // メッセージからイベント内容のテキストを取り除く
-    textWithoutCategoryAndEventContent = textWithoutCategoryAndEventContent.replace(eventContentRegex, '').trim();
-  }
-
-  // カテゴリとイベント内容を含むイベントデータをデータベースに保存
-  await insertDataToDatabase(event, textWithoutCategoryAndEventContent, categoryText, eventContentText);
 }
 
 if (process.env.NOW_REGION) {
