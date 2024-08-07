@@ -22,7 +22,7 @@ const pool = new Pool({
 });
 
 // insertDataToDatabase 関数を変更して、ユーザー名とユーザーIDを追加します
-async function insertDataToDatabase(event, text, userName, userId) {
+async function insertDataToDatabase(event, text, userName, userLineId) {
   try {
     const query = `
       INSERT INTO linebot_messages (
@@ -40,7 +40,7 @@ async function insertDataToDatabase(event, text, userName, userId) {
       event.mode,
       event.deliveryContext.isRedelivery,
       userName,
-      userId
+      userLineId
     ];
 
     await pool.query(query, values);
@@ -85,8 +85,6 @@ async function handleEvent(event) {
     return Promise.resolve(null);
   }
 
-  console.log("event",event);
-
   // 「問診票」が含まれるメッセージをチェック
   if (event.message.text.includes('問診票')) {
     // ユーザー名とユーザーIDを正規表現で抽出
@@ -95,10 +93,10 @@ async function handleEvent(event) {
 
     if (userNameMatch && userIdMatch) {
       const userName = userNameMatch[1];
-      const userId = userIdMatch[1];
+      const userLineId = userIdMatch[1];
 
       // ユーザー名とユーザーIDを含むデータをデータベースに保存
-      await insertDataToDatabase(event, event.message.text, userName, userId);
+      await insertDataToDatabase(event, event.message.text, userName, userLineId);
     }
   }
 }
