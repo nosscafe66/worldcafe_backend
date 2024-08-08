@@ -21,31 +21,29 @@ const pool = new Pool({
   }
 });
 
-async function insertDataToDatabase(event, notificationType, userName, userId, registrationDate, questionnaireId) {
+// insertDataToDatabase 関数を変更して、ユーザー名とユーザーIDを追加します
+async function insertDataToDatabase(event, text, userName, userId) {
   try {
     const query = `
       INSERT INTO linebot_messages (
-        message_id, notification_type, user_name, user_id, registration_date, questionnaire_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery
+        message_id, text, user_id, group_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery, user_name, user_line_id
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
 
     const values = [
       event.message.id,
-      notificationType,
-      userName,
-      userId,
-      registrationDate,
-      questionnaireId,
+      text,
+      event.source.userId,
+      event.source.groupId,
       event.timestamp,
       event.replyToken,
       event.webhookEventId,
       event.mode,
-      event.deliveryContext.isRedelivery
+      event.deliveryContext.isRedelivery,
+      userName,
+      userId
     ];
 
-    console.log('Inserting data to database with values:', values); // デバッグ用ログ
-
     await pool.query(query, values);
-    console.log('Data inserted successfully');
   } catch (err) {
     console.error('Error inserting data to database:', err);
   }
@@ -87,28 +85,21 @@ async function handleEvent(event) {
     return Promise.resolve(null);
   }
 
-  console.log("Event received:", event); // デバッグ用ログ
+  console.log("event",event)
 
-  // メッセージから各情報を正規表現で抽出
-  const notificationTypeMatch = event.message.text.match(/^\[([^\]]+)\]/);
-  const userNameMatch = event.message.text.match(/ユーザー名:\s*(.+)/);
-  const userIdMatch = event.message.text.match(/ユーザーID:\s*(\S+)/);
-  const registrationDateMatch = event.message.text.match(/登録日時:\s*([^\n]+)/);
-  const questionnaireIdMatch = event.message.text.match(/問診票ID:\s*(\S+)/);
+  // 「問診票」が含まれるメッセージをチェック
+  if (event.message.text.includes('問診票')) {
+    // ユーザー名とユーザーIDを正規表現で抽出
+    const userNameMatch = event.message.text.match(/ユーザー名:\s*(\S+)/);
+    const userIdMatch = event.message.text.match(/ユーザーID:\s*(\S+)/);
 
-  if (notificationTypeMatch && userNameMatch && userIdMatch && registrationDateMatch && questionnaireIdMatch) {
-    const notificationType = notificationTypeMatch[1];
-    const userName = userNameMatch[1];
-    const userId = userIdMatch[1];
-    const registrationDate = registrationDateMatch[1];
-    const questionnaireId = questionnaireIdMatch[1];
+    if (userNameMatch && userIdMatch) {
+      const userName = userNameMatch[1];
+      const userId = userIdMatch[1];
 
-    console.log("Extracted data:", { notificationType, userName, userId, registrationDate, questionnaireId }); // デバッグ用ログ
-
-    // 各情報を含むデータをデータベースに保存
-    await insertDataToDatabase(event, notificationType, userName, userId, registrationDate, questionnaireId);
-  } else {
-    console.log("Failed to match all required fields."); // デバッグ用ログ
+      // ユーザー名とユーザーIDを含むデータをデータベースに保存
+      await insertDataToDatabase(event, event.message.text, userName, userId);
+    }
   }
 }
 
