@@ -57,7 +57,7 @@ async function fetchAllData() {
 app.get('/', async (req, res) => {
   try {
     const data = await fetchAllData();
-    res.json("このサーバーはLINE Botのためのものです。");
+    res.json(data);
   } catch (err) {
     res.status(500).send('Server error');
   }
