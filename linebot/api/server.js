@@ -83,7 +83,7 @@ async function handleEvent(event) {
   console.log("Event received:", event); // デバッグ用ログ
 
   // 「問診票」が含まれるメッセージをチェック
-  if (event.message.text.includes('問診票')) {
+  // if (event.message.text.includes('問診票')) {
     // ユーザー名とユーザーIDを正規表現で抽出
     const userNameMatch = event.message.text.match(/ユーザー名:\s*(\S+)/);
     const userIdMatch = event.message.text.match(/ユーザーID:\s*(\S+)/);
@@ -95,7 +95,7 @@ async function handleEvent(event) {
       // ユーザー名とユーザーIDを含むデータをデータベースに保存
       await insertDataToDatabase(event, event.message.text, userName, userId);
     }
-  }
+  // }
 }
 
 if (process.env.NOW_REGION) {
