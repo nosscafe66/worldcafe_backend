@@ -95,7 +95,7 @@ async function handleEvent(event) {
 
     // 各情報を正規表現で抽出
     const notificationTypeMatch = event.message.text.match(/^\[([^\]]+)\]/);
-    const userNameMatch = event.message.text.match(/ユーザー名:\s*(\S+)/);
+    const userNameMatch = event.message.text.match(/ユーザー名:\s*(.+)/);
     const userIdMatch = event.message.text.match(/ユーザーID:\s*(\S+)/);
     const registrationDateMatch = event.message.text.match(/登録日時:\s*([^\n]+)/);
     const questionnaireIdMatch = event.message.text.match(/問診票ID:\s*(\S+)/);
