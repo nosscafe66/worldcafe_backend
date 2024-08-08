@@ -42,7 +42,10 @@ async function insertDataToDatabase(event, notificationType, userName, userId, r
       event.deliveryContext.isRedelivery
     ];
 
+    console.log('Inserting data to database with values:', values); // デバッグ用ログ
+
     await pool.query(query, values);
+    console.log('Data inserted successfully');
   } catch (err) {
     console.error('Error inserting data to database:', err);
   }
@@ -84,28 +87,29 @@ async function handleEvent(event) {
     return Promise.resolve(null);
   }
 
-  console.log("event",event);
+  console.log("Event received:", event); // デバッグ用ログ
 
-  // 「問診票」が含まれるメッセージをチェック
-  // if (event.message.text.includes('問診票')) {
-    // 各情報を正規表現で抽出
-    const notificationTypeMatch = event.message.text.match(/^\[([^\]]+)\]/);
-    const userNameMatch = event.message.text.match(/ユーザー名:\s*(\S+)/);
-    const userIdMatch = event.message.text.match(/ユーザーID:\s*(\S+)/);
-    const registrationDateMatch = event.message.text.match(/登録日時:\s*([^\n]+)/);
-    const questionnaireIdMatch = event.message.text.match(/問診票ID:\s*(\S+)/);
+  // メッセージから各情報を正規表現で抽出
+  const notificationTypeMatch = event.message.text.match(/^\[([^\]]+)\]/);
+  const userNameMatch = event.message.text.match(/ユーザー名:\s*(.+)/);
+  const userIdMatch = event.message.text.match(/ユーザーID:\s*(\S+)/);
+  const registrationDateMatch = event.message.text.match(/登録日時:\s*([^\n]+)/);
+  const questionnaireIdMatch = event.message.text.match(/問診票ID:\s*(\S+)/);
 
-    if (notificationTypeMatch && userNameMatch && userIdMatch && registrationDateMatch && questionnaireIdMatch) {
-      const notificationType = notificationTypeMatch[1];
-      const userName = userNameMatch[1];
-      const userId = userIdMatch[1];
-      const registrationDate = registrationDateMatch[1];
-      const questionnaireId = questionnaireIdMatch[1];
+  if (notificationTypeMatch && userNameMatch && userIdMatch && registrationDateMatch && questionnaireIdMatch) {
+    const notificationType = notificationTypeMatch[1];
+    const userName = userNameMatch[1];
+    const userId = userIdMatch[1];
+    const registrationDate = registrationDateMatch[1];
+    const questionnaireId = questionnaireIdMatch[1];
 
-      // 各情報を含むデータをデータベースに保存
-      await insertDataToDatabase(event, notificationType, userName, userId, registrationDate, questionnaireId);
-    }
-  // }
+    console.log("Extracted data:", { notificationType, userName, userId, registrationDate, questionnaireId }); // デバッグ用ログ
+
+    // 各情報を含むデータをデータベースに保存
+    await insertDataToDatabase(event, notificationType, userName, userId, registrationDate, questionnaireId);
+  } else {
+    console.log("Failed to match all required fields."); // デバッグ用ログ
+  }
 }
 
 if (process.env.NOW_REGION) {
