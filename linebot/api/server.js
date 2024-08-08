@@ -43,6 +43,7 @@ async function insertDataToDatabase(event, notificationType, userName, userId, r
     ];
 
     await pool.query(query, values);
+    console.log('Data inserted successfully');
   } catch (err) {
     console.error('Error inserting data to database:', err);
   }
