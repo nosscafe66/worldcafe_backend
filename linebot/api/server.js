@@ -21,25 +21,24 @@ const pool = new Pool({
   }
 });
 
-async function insertDataToDatabase(event, notificationType, userName, userId, registrationDate, questionnaireId) {
+async function insertDataToDatabase(event, text, category) {
   try {
     const query = `
       INSERT INTO linebot_messages (
-        message_id, notification_type, user_name, user_id, registration_date, questionnaire_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
+        message_id, text, user_id, group_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery, category
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`;
 
     const values = [
       event.message.id,
-      notificationType,
-      userName,
-      userId,
-      registrationDate,
-      questionnaireId,
+      text,
+      event.source.userId,
+      event.source.groupId || null,
       event.timestamp,
       event.replyToken,
       event.webhookEventId,
       event.mode,
-      event.deliveryContext.isRedelivery
+      event.deliveryContext.isRedelivery,
+      category
     ];
 
     console.log('Inserting data to database with values:', values); // デバッグ用ログ
@@ -64,7 +63,7 @@ async function fetchAllData() {
 app.get('/', async (req, res) => {
   try {
     const data = await fetchAllData();
-    res.json("このサーバーはLINE Botのためのものです。");
+    res.json(data);
   } catch (err) {
     res.status(500).send('Server error');
   }
@@ -89,12 +88,16 @@ async function handleEvent(event) {
 
   console.log("Event received:", event); // デバッグ用ログ
 
-  // メッセージから各情報を正規表現で抽出
-  const notificationTypeMatch = event.message.text.match(/^\[([^\]]+)\]/);
-  const userNameMatch = event.message.text.match(/ユーザー名:\s*(.+)/);
-  const userIdMatch = event.message.text.match(/ユーザーID:\s*(\S+)/);
-  const registrationDateMatch = event.message.text.match(/登録日時:\s*([^\n]+)/);
-  const questionnaireIdMatch = event.message.text.match(/問診票ID:\s*(\S+)/);
+  const messageText = event.message.text;
+
+  // 各情報を正規表現で抽出
+  const notificationTypeMatch = messageText.match(/^\[([^\]]+)\]/);
+  const userNameMatch = messageText.match(/ユーザー名:\s*(.+)/);
+  const userIdMatch = messageText.match(/ユーザーID:\s*(\S+)/);
+  const registrationDateMatch = messageText.match(/登録日時:\s*([^\n]+)/);
+  const questionnaireIdMatch = messageText.match(/問診票ID:\s*(\S+)/);
+
+  console.log("Matches found:", { notificationTypeMatch, userNameMatch, userIdMatch, registrationDateMatch, questionnaireIdMatch }); // デバッグ用ログ
 
   if (notificationTypeMatch && userNameMatch && userIdMatch && registrationDateMatch && questionnaireIdMatch) {
     const notificationType = notificationTypeMatch[1];
@@ -106,9 +109,11 @@ async function handleEvent(event) {
     console.log("Extracted data:", { notificationType, userName, userId, registrationDate, questionnaireId }); // デバッグ用ログ
 
     // 各情報を含むデータをデータベースに保存
-    await insertDataToDatabase(event, notificationType, userName, userId, registrationDate, questionnaireId);
+    await insertDataToDatabase(event, messageText, notificationType);
   } else {
-    console.log("Failed to match all required fields."); // デバッグ用ログ
+    // 必要な情報が全て揃っていない場合はカテゴリーを null にして保存
+    await insertDataToDatabase(event, messageText, null);
+    console.log("Inserted data without category due to missing fields."); // デバッグ用ログ
   }
 }
 
