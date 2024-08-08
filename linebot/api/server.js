@@ -21,6 +21,7 @@ const pool = new Pool({
   }
 });
 
+// insertDataToDatabase 関数を変更して、ユーザー名とユーザーIDを追加します
 async function insertDataToDatabase(event, text, userName, userId) {
   try {
     const query = `
@@ -37,10 +38,7 @@ async function insertDataToDatabase(event, text, userName, userId) {
       userId
     ];
 
-    console.log('Inserting data to database with values:', values); // デバッグ用ログ
-
     await pool.query(query, values);
-    console.log('Data inserted successfully');
   } catch (err) {
     console.error('Error inserting data to database:', err);
   }
@@ -59,36 +57,19 @@ async function fetchAllData() {
 app.get('/', async (req, res) => {
   try {
     const data = await fetchAllData();
-    res.set({
-      'Cache-Control': 'no-store',
-      'CDN-Cache-Control': 'no-store',
-      'Vercel-CDN-Cache-Control': 'no-store'
-    });
-    res.json(data);
+    res.json("このサーバーはLINE Botのためのものです。");
   } catch (err) {
-    res.status(500).set({
-      'Cache-Control': 'no-store',
-      'CDN-Cache-Control': 'no-store',
-      'Vercel-CDN-Cache-Control': 'no-store'
-    }).send('Server error');
+    res.status(500).send('Server error');
   }
 });
 
 app.post('/webhook', line.middleware(config), (req, res) => {
     Promise
         .all(req.body.events.map(handleEvent))
-        .then((result) => res.set({
-          'Cache-Control': 'no-store',
-          'CDN-Cache-Control': 'no-store',
-          'Vercel-CDN-Cache-Control': 'no-store'
-        }).json(result))
+        .then((result) => res.json(result))
         .catch((err) => {
             console.error(err);
-            res.status(500).set({
-              'Cache-Control': 'no-store',
-              'CDN-Cache-Control': 'no-store',
-              'Vercel-CDN-Cache-Control': 'no-store'
-            }).end();
+            res.status(500).end();
         });
 });
 
@@ -110,8 +91,6 @@ async function handleEvent(event) {
     if (userNameMatch && userIdMatch) {
       const userName = userNameMatch[1];
       const userId = userIdMatch[1];
-
-      console.log("Extracted data:", { userName, userId }); // デバッグ用ログ
 
       // ユーザー名とユーザーIDを含むデータをデータベースに保存
       await insertDataToDatabase(event, event.message.text, userName, userId);
