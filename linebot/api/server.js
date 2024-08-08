@@ -21,26 +21,25 @@ const pool = new Pool({
   }
 });
 
-// insertDataToDatabase 関数を変更して、ユーザー名とユーザーIDを追加します
-async function insertDataToDatabase(event, text, userName, userId) {
+async function insertDataToDatabase(event, notificationType, userName, userId, registrationDate, questionnaireId) {
   try {
     const query = `
       INSERT INTO linebot_messages (
-        message_id, text, user_id, group_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery, user_name, user_line_id
+        message_id, notification_type, user_name, user_id, registration_date, questionnaire_id, timestamp, reply_token, webhook_event_id, mode, is_redelivery
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`;
 
     const values = [
       event.message.id,
-      text,
-      event.source.userId,
-      event.source.groupId,
+      notificationType,
+      userName,
+      userId,
+      registrationDate,
+      questionnaireId,
       event.timestamp,
       event.replyToken,
       event.webhookEventId,
       event.mode,
-      event.deliveryContext.isRedelivery,
-      userName,
-      userId
+      event.deliveryContext.isRedelivery
     ];
 
     await pool.query(query, values);
@@ -85,22 +84,28 @@ async function handleEvent(event) {
     return Promise.resolve(null);
   }
 
-  console.log("event",event)
+  console.log("event",event);
 
   // 「問診票」が含まれるメッセージをチェック
-  if (event.message.text.includes('問診票')) {
-    // ユーザー名とユーザーIDを正規表現で抽出
+  // if (event.message.text.includes('問診票')) {
+    // 各情報を正規表現で抽出
+    const notificationTypeMatch = event.message.text.match(/^\[([^\]]+)\]/);
     const userNameMatch = event.message.text.match(/ユーザー名:\s*(\S+)/);
     const userIdMatch = event.message.text.match(/ユーザーID:\s*(\S+)/);
+    const registrationDateMatch = event.message.text.match(/登録日時:\s*([^\n]+)/);
+    const questionnaireIdMatch = event.message.text.match(/問診票ID:\s*(\S+)/);
 
-    if (userNameMatch && userIdMatch) {
+    if (notificationTypeMatch && userNameMatch && userIdMatch && registrationDateMatch && questionnaireIdMatch) {
+      const notificationType = notificationTypeMatch[1];
       const userName = userNameMatch[1];
       const userId = userIdMatch[1];
+      const registrationDate = registrationDateMatch[1];
+      const questionnaireId = questionnaireIdMatch[1];
 
-      // ユーザー名とユーザーIDを含むデータをデータベースに保存
-      await insertDataToDatabase(event, event.message.text, userName, userId);
+      // 各情報を含むデータをデータベースに保存
+      await insertDataToDatabase(event, notificationType, userName, userId, registrationDate, questionnaireId);
     }
-  }
+  // }
 }
 
 if (process.env.NOW_REGION) {
