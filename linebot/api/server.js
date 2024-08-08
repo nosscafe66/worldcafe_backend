@@ -42,6 +42,8 @@ async function insertDataToDatabase(event, notificationType, userName, userId, r
       event.deliveryContext.isRedelivery
     ];
 
+    console.log('Inserting data to database with values:', values); // デバッグ用ログ
+
     await pool.query(query, values);
     console.log('Data inserted successfully');
   } catch (err) {
@@ -85,10 +87,12 @@ async function handleEvent(event) {
     return Promise.resolve(null);
   }
 
-  console.log("event",event);
+  console.log("Event received:", event); // デバッグ用ログ
 
   // 「問診票」が含まれるメッセージをチェック
   if (event.message.text.includes('問診票')) {
+    console.log("Matching text found:", event.message.text); // デバッグ用ログ
+
     // 各情報を正規表現で抽出
     const notificationTypeMatch = event.message.text.match(/^\[([^\]]+)\]/);
     const userNameMatch = event.message.text.match(/ユーザー名:\s*(\S+)/);
@@ -103,8 +107,12 @@ async function handleEvent(event) {
       const registrationDate = registrationDateMatch[1];
       const questionnaireId = questionnaireIdMatch[1];
 
+      console.log("Extracted data:", { notificationType, userName, userId, registrationDate, questionnaireId }); // デバッグ用ログ
+
       // 各情報を含むデータをデータベースに保存
       await insertDataToDatabase(event, notificationType, userName, userId, registrationDate, questionnaireId);
+    } else {
+      console.log("Failed to match all required fields."); // デバッグ用ログ
     }
   }
 }
